@@ -1,50 +1,78 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report:
+Version change: 1.0.0 → 1.0.0 (initial constitution)
+Modified principles: None (initial creation)
+Added sections: All sections (initial creation)
+Removed sections: None
+Templates requiring updates:
+✅ plan-template.md (checked - constitution check section compatible)
+✅ spec-template.md (checked - requirements alignment compatible)
+✅ tasks-template.md (checked - task organization compatible)
+Follow-up TODOs: None
+-->
+
+# AI AGENT Web Application Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Web-First Architecture
+Every AI agent interaction MUST be observable through a web interface. The web dashboard provides real-time monitoring of AI operations, execution results, and historical analytics. All agent activities MUST generate structured logs and results that persist to a database for web display.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Data Persistence & History
+The system MUST maintain immutable records of all AI operations. Each execution, result, and user interaction MUST be stored with timestamps, metadata, and correlation IDs. Historical data MUST be queryable, filterable, and exportable through the web interface.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. API-First Integration
+All AI agent capabilities MUST be accessible via RESTful APIs. The web interface consumes these APIs exclusively, ensuring programmatic access to all features. APIs MUST support JSON input/output with clear documentation and versioning.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Observable Operations
+AI agent processes MUST emit structured logs, metrics, and status updates. Real-time monitoring through the web dashboard is non-negotiable. System health, performance metrics, and execution status MUST be immediately visible to users.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Test-First Development (NON-NEGOTIABLE)
+TDD is mandatory: Tests must be written → User approved → Tests must fail → Only then implement. Red-Green-Refactor cycle strictly enforced. All AI agent operations, API endpoints, and web interface components MUST have comprehensive test coverage.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Technology Stack Requirements
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### Backend Architecture
+- AI agent runtime framework supporting extensible operations
+- RESTful API server with structured JSON responses
+- Database system supporting time-series and relational data storage
+- Real-time communication (WebSocket/SSE) for live updates
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+### Frontend Requirements
+- Modern web framework supporting reactive data display
+- Real-time dashboard components for monitoring AI operations
+- Historical data visualization with filtering and search capabilities
+- Responsive design for desktop and mobile access
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### Data Management
+- Immutable audit trail for all AI operations
+- Structured logging with searchable metadata
+- Export capabilities for historical analysis
+- Data retention policies configurable by users
+
+## Development Workflow
+
+### Quality Gates
+- All code reviews MUST verify constitution compliance
+- Every feature MUST include comprehensive tests
+- No AI operation can be merged without web interface visibility
+- Performance and security testing mandatory for deployment
+
+### Review Process
+- Architecture changes require team approval
+- API modifications must maintain backward compatibility
+- Web interface changes require UX review
+- AI agent behavior changes require documentation updates
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes all other project practices and guidelines. Amendments require:
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+1. Documentation of proposed changes with rationale
+2. Team review and approval process
+3. Migration plan for affected code/components
+4. Version update following semantic versioning rules
+
+All pull requests and reviews must verify constitution compliance. Any deviation from these principles must be explicitly justified and approved by the project team.
+
+**Version**: 1.0.0 | **Ratified**: 2025-11-03 | **Last Amended**: 2025-11-03

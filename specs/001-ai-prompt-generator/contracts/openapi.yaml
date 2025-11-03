@@ -1,0 +1,680 @@
+openapi: 3.0.3
+info:
+  title: AI Agent Prompt Generator API
+  description: API for generating LLM prompts through collaborative AI agents
+  version: 1.0.0
+servers:
+  - url: https://api.promptgen.example.com/v1
+    description: Production server
+  - url: https://staging-api.promptgen.example.com/v1
+    description: Staging server
+
+paths:
+  /sessions:
+    post:
+      summary: Create a new prompt generation session
+      operationId: createSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSessionRequest'
+      responses:
+        '201':
+          description: Session created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+    get:
+      summary: List sessions with filtering
+      operationId: listSessions
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, completed, failed, timeout]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: created_after
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Sessions retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionList'
+
+  /sessions/{sessionId}:
+    get:
+      summary: Get session details with all messages
+      operationId: getSession
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Session retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Cancel or delete a session
+      operationId: deleteSession
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Session deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /sessions/{sessionId}/messages:
+    get:
+      summary: Get messages for a session
+      operationId: getSessionMessages
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: agent_type
+          in: query
+          schema:
+            type: string
+            enum: [product_manager, technical_developer, team_lead]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Messages retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageList'
+
+  /sessions/{sessionId}/start:
+    post:
+      summary: Start the agent collaboration process
+      operationId: startSession
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Session started successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionStatus'
+        '409':
+          description: Session already started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/Conflict'
+
+  /sessions/{sessionId}/user-input:
+    post:
+      summary: Add supplementary user input during active session
+      operationId: addSupplementaryInput
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SupplementaryUserInputRequest'
+      responses:
+        '200':
+          description: User input received and processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInputResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Session not accepting user input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/Conflict'
+
+  /sessions/{sessionId}/clarifying-questions:
+    get:
+      summary: Get clarifying questions for a session
+      operationId: getClarifyingQuestions
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, answered, expired, cancelled]
+      responses:
+        '200':
+          description: Clarifying questions retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClarifyingQuestionsResponse'
+
+  /sessions/{sessionId}/clarifying-questions/{questionId}/response:
+    post:
+      summary: Respond to a clarifying question
+      operationId: respondToClarifyingQuestion
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: questionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClarifyingQuestionResponseRequest'
+      responses:
+        '200':
+          description: Response received successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClarifyingQuestionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Question already answered or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/Conflict'
+
+  /history:
+    get:
+      summary: Get historical sessions with search
+      operationId: getHistory
+      parameters:
+        - name: query
+          in: query
+          schema:
+            type: string
+            description: Search query for user input or message content
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Historical sessions retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HistoryResponse'
+
+  /health:
+    get:
+      summary: Health check endpoint
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+components:
+  schemas:
+    CreateSessionRequest:
+      type: object
+      required:
+        - user_input
+      properties:
+        user_input:
+          type: string
+          maxLength: 10000
+          description: User's requirement description
+          example: "I want to create a chatbot for customer service"
+
+    Session:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        user_input:
+          type: string
+          example: "I want to create a chatbot for customer service"
+        status:
+          type: string
+          enum: [active, waiting_for_user, processing, completed, failed, timeout]
+          example: "active"
+        user_intervention_count:
+          type: integer
+          example: 1
+        waiting_for_user_since:
+          type: string
+          format: date-time
+          nullable: true
+        iteration_count:
+          type: integer
+          example: 2
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        final_prompt:
+          type: string
+          nullable: true
+
+    SessionDetail:
+      allOf:
+        - $ref: '#/components/schemas/Session'
+        - type: object
+          properties:
+            messages:
+              type: array
+              items:
+                $ref: '#/components/schemas/AgentMessage'
+            metrics:
+              $ref: '#/components/schemas/SessionMetrics'
+
+    AgentMessage:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        agent_type:
+          type: string
+          enum: [product_manager, technical_developer, team_lead]
+        message_content:
+          type: string
+          example: "Based on your requirements, I suggest a customer service chatbot with natural language understanding capabilities..."
+        message_type:
+          type: string
+          enum: [requirement, solution, review, approval, rejection]
+        sequence_number:
+          type: integer
+          example: 1
+        parent_message_id:
+          type: string
+          format: uuid
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        processing_time_ms:
+          type: integer
+          example: 1250
+
+    SessionMetrics:
+      type: object
+      properties:
+        total_messages:
+          type: integer
+          example: 6
+        total_duration_seconds:
+          type: integer
+          example: 180
+        average_response_time_ms:
+          type: integer
+          example: 1500
+        agent_message_counts:
+          type: object
+          properties:
+            product_manager:
+              type: integer
+              example: 2
+            technical_developer:
+              type: integer
+              example: 2
+            team_lead:
+              type: integer
+              example: 2
+
+    SessionList:
+      type: object
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Session'
+        total:
+          type: integer
+          example: 42
+        limit:
+          type: integer
+          example: 20
+        offset:
+          type: integer
+          example: 0
+
+    MessageList:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentMessage'
+        total:
+          type: integer
+          example: 15
+
+    HistoryResponse:
+      type: object
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SessionDetail'
+        total:
+          type: integer
+          example: 156
+        query:
+          type: string
+          nullable: true
+
+    SessionStatus:
+      type: object
+      properties:
+        session_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [active, completed, failed, timeout]
+        current_iteration:
+          type: integer
+        max_iterations:
+          type: integer
+        estimated_completion_time:
+          type: string
+          format: date-time
+          nullable: true
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        version:
+          type: string
+          example: "1.0.0"
+        timestamp:
+          type: string
+          format: date-time
+        dependencies:
+          type: object
+          properties:
+            database:
+              type: string
+              enum: [healthy, unhealthy]
+            llm_api:
+              type: string
+              enum: [healthy, degraded, unhealthy]
+            redis:
+              type: string
+              enum: [healthy, unhealthy]
+
+    SupplementaryUserInputRequest:
+      type: object
+      required:
+        - input_content
+      properties:
+        input_content:
+          type: string
+          maxLength: 10000
+          description: Additional user input during active session
+          example: "Please also include multi-language support in the chatbot requirements"
+        input_type:
+          type: string
+          enum: [supplementary, clarification_response]
+          default: supplementary
+          description: Type of user input
+
+    UserInputResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        processing_status:
+          type: string
+          enum: [pending, processed, failed]
+        message:
+          type: string
+          description: Status message for the user
+        estimated_processing_time:
+          type: integer
+          description: Estimated processing time in seconds
+        session_status:
+          $ref: '#/components/schemas/SessionStatus'
+
+    ClarifyingQuestionsResponse:
+      type: object
+      properties:
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClarifyingQuestion'
+        total:
+          type: integer
+        has_pending:
+          type: boolean
+          description: Whether there are pending questions awaiting response
+
+    ClarifyingQuestion:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        question_text:
+          type: string
+          example: "Could you clarify what specific platforms the chatbot should support?"
+        question_type:
+          type: string
+          enum: [ambiguity, clarification, confirmation]
+          example: "clarification"
+        priority:
+          type: integer
+          minimum: 1
+          maximum: 3
+          example: 1
+        asked_at:
+          type: string
+          format: date-time
+        response_deadline:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [pending, answered, expired, cancelled]
+          example: "pending"
+        response_text:
+          type: string
+          nullable: true
+        responded_at:
+          type: string
+          format: date-time
+          nullable: true
+        agent_type:
+          type: string
+          enum: [product_manager]
+          example: "product_manager"
+
+    ClarifyingQuestionResponseRequest:
+      type: object
+      required:
+        - response_text
+      properties:
+        response_text:
+          type: string
+          maxLength: 5000
+          description: User's response to the clarifying question
+          example: "The chatbot should support web, mobile app, and email platforms"
+
+    ClarifyingQuestionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [answered, expired, cancelled]
+          example: "answered"
+        response_text:
+          type: string
+          example: "The chatbot should support web, mobile app, and email platforms"
+        responded_at:
+          type: string
+          format: date-time
+        next_steps:
+          type: string
+          description: Description of what will happen next
+        session_status:
+          $ref: '#/components/schemas/SessionStatus'
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Invalid request parameters"
+              details:
+                type: object
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Session not found"
+
+    Conflict:
+      description: Resource conflict
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Session already started"
+
+    RateLimited:
+      description: Too many requests
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Rate limit exceeded"
+              retry_after:
+                type: integer
+                example: 60
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - BearerAuth: []
