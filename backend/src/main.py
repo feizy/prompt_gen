@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI):
     logger.info("Database initialized")
 
     # Initialize Redis
-    await init_redis()
+    init_redis()
     logger.info("Redis initialized")
 
     yield

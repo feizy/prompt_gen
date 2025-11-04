@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: prompt_gen_postgres_win
+    environment:
+      POSTGRES_DB: prompt_gen
+      POSTGRES_USER: prompt_gen_user
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    ports:
+      - "5432:5432"  # Windows 端口映射
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - prompt_gen_network
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    container_name: prompt_gen_redis_win
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    ports:
+      - "6379:6379"  # Windows 端口映射
+    volumes:
+      - redis_data:/data
+    networks:
+      - prompt_gen_network
+    restart: always
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  prompt_gen_network:
+    driver: bridge
+

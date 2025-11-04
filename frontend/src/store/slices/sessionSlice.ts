@@ -1,54 +1,8 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import apiService, { Session, AgentMessage, SupplementaryUserInput, ClarifyingQuestion } from '../../services/apiService';
 
-// Types
-export interface Session {
-  id: string;
-  user_input: string;
-  status: 'active' | 'waiting_for_user' | 'processing' | 'completed' | 'failed' | 'timeout';
-  final_prompt: string | null;
-  created_at: string;
-  updated_at: string;
-  iteration_count: number;
-  user_intervention_count: number;
-  waiting_for_user_since: string | null;
-}
-
-export interface AgentMessage {
-  id: string;
-  session_id: string;
-  agent_type: 'product_manager' | 'technical_developer' | 'team_lead';
-  message_content: string;
-  message_type: 'requirement' | 'solution' | 'review' | 'approval' | 'rejection';
-  sequence_number: number;
-  parent_message_id: string | null;
-  created_at: string;
-  processing_time_ms: number | null;
-}
-
-export interface SupplementaryUserInput {
-  id: string;
-  session_id: string;
-  input_content: string;
-  input_type: 'supplementary' | 'clarification_response';
-  provided_at: string;
-  processing_status: 'pending' | 'processed' | 'failed';
-  sequence_number: number;
-}
-
-export interface ClarifyingQuestion {
-  id: string;
-  session_id: string;
-  question_text: string;
-  question_type: 'ambiguity' | 'clarification' | 'confirmation';
-  priority: number;
-  asked_at: string;
-  response_deadline: string | null;
-  status: 'pending' | 'answered' | 'expired' | 'cancelled';
-  response_text: string | null;
-  responded_at: string | null;
-  agent_type: 'product_manager';
-  sequence_number: number;
-}
+// Re-export types from API service
+export { Session, AgentMessage, SupplementaryUserInput, ClarifyingQuestion };
 
 interface SessionState {
   sessions: Session[];
@@ -73,37 +27,80 @@ const initialState: SessionState = {
 // Async thunks
 export const createSession = createAsyncThunk(
   'session/createSession',
-  async (userInput: string) => {
-    // TODO: Implement API call
-    const response = await fetch('/v1/sessions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ user_input: userInput }),
-    });
-    const data = await response.json();
-    return data;
+  async (userInput: string, { rejectWithValue }) => {
+    try {
+      const response = await apiService.createSession({
+        user_input: userInput,
+        max_iterations: 5,
+        max_interventions: 3
+      });
+      return response.session;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to create session');
+    }
   }
 );
 
 export const fetchSession = createAsyncThunk(
   'session/fetchSession',
-  async (sessionId: string) => {
-    // TODO: Implement API call
-    const response = await fetch(`/v1/sessions/${sessionId}`);
-    const data = await response.json();
-    return data;
+  async (sessionId: string, { rejectWithValue }) => {
+    try {
+      const session = await apiService.getSession(sessionId);
+      return session;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to fetch session');
+    }
+  }
+);
+
+export const fetchSessions = createAsyncThunk(
+  'session/fetchSessions',
+  async (params?: { page?: number; size?: number; status?: string; search?: string }, { rejectWithValue }) => {
+    try {
+      const response = await apiService.getSessions(params);
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to fetch sessions');
+    }
   }
 );
 
 export const fetchSessionMessages = createAsyncThunk(
   'session/fetchSessionMessages',
-  async (sessionId: string) => {
-    // TODO: Implement API call
-    const response = await fetch(`/v1/sessions/${sessionId}/messages`);
-    const data = await response.json();
-    return data.messages;
+  async (sessionId: string, { rejectWithValue }) => {
+    try {
+      const messages = await apiService.getSessionMessages(sessionId);
+      return messages;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to fetch session messages');
+    }
+  }
+);
+
+export const addSupplementaryInput = createAsyncThunk(
+  'session/addSupplementaryInput',
+  async ({ sessionId, input }: { sessionId: string; input: string }, { rejectWithValue }) => {
+    try {
+      const response = await apiService.addSupplementaryInput(sessionId, {
+        input_content: input,
+        input_type: 'supplementary'
+      });
+      return { sessionId, response };
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to add supplementary input');
+    }
+  }
+);
+
+export const fetchClarifyingQuestions = createAsyncThunk(
+  'session/fetchClarifyingQuestions',
+  async (sessionId: string, { rejectWithValue }) => {
+    try {
+      const questions = await apiService.getClarifyingQuestions(sessionId);
+      return { sessionId, questions };
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to fetch clarifying questions');
+    }
   }
 );
 

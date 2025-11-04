@@ -1,6 +1,6 @@
-# Windows AI Agent Prompt Generator 部署脚本
-# 作者: Claude Code
-# 版本: 1.0.0
+# Windows AI Agent Prompt Generator Deployment Script
+# Author: Claude Code
+# Version: 1.0.0
 
 param(
     [string]$Environment = "development",
@@ -11,30 +11,30 @@ param(
     [switch]$Help = $false
 )
 
-# 显示帮助信息
+# Display help information
 if ($Help) {
-    Write-Host "🪟 Windows AI Agent Prompt Generator 部署脚本" -ForegroundColor Green
+    Write-Host "🪟 Windows AI Agent Prompt Generator Deployment Script" -ForegroundColor Green
     Write-Host "=================================================" -ForegroundColor Green
     Write-Host ""
-    Write-Host "用法:" -ForegroundColor White
-    Write-Host "  .\windows_deploy.ps1 [参数]" -ForegroundColor Gray
+    Write-Host "Usage:" -ForegroundColor White
+    Write-Host "  .\windows_deploy.ps1 [parameters]" -ForegroundColor Gray
     Write-Host ""
-    Write-Host "参数:" -ForegroundColor White
-    Write-Host "  -Environment <string>    部署环境 (development|production) [默认: development]" -ForegroundColor Gray
-    Write-Host "  -GLM_API_KEY <string>    GLM API 密钥" -ForegroundColor Gray
-    Write-Host "  -DOMAIN <string>         域名 [默认: localhost]" -ForegroundColor Gray
-    Write-Host "  -UseDocker              使用 Docker 部署数据库" -ForegroundColor Gray
-    Write-Host "  -SkipDatabase           跳过数据库部署" -ForegroundColor Gray
-    Write-Host "  -Help                   显示此帮助信息" -ForegroundColor Gray
+    Write-Host "Parameters:" -ForegroundColor White
+    Write-Host "  -Environment <string>    Deployment environment (development|production) [default: development]" -ForegroundColor Gray
+    Write-Host "  -GLM_API_KEY <string>    GLM API Key" -ForegroundColor Gray
+    Write-Host "  -DOMAIN <string>         Domain [default: localhost]" -ForegroundColor Gray
+    Write-Host "  -UseDocker              Use Docker to deploy database" -ForegroundColor Gray
+    Write-Host "  -SkipDatabase           Skip database deployment" -ForegroundColor Gray
+    Write-Host "  -Help                   Show this help information" -ForegroundColor Gray
     Write-Host ""
-    Write-Host "示例:" -ForegroundColor White
+    Write-Host "Examples:" -ForegroundColor White
     Write-Host "  .\windows_deploy.ps1 -Environment development -UseDocker" -ForegroundColor Gray
     Write-Host "  .\windows_deploy.ps1 -Environment production -GLM_API_KEY 'your_key' -DOMAIN 'example.com'" -ForegroundColor Gray
     Write-Host "  .\windows_deploy.ps1 -SkipDatabase -Environment development" -ForegroundColor Gray
     exit 0
 }
 
-# 颜色主题配置
+# Color theme configuration
 $Colors = @{
     Success = "Green"
     Warning = "Yellow"
@@ -44,7 +44,7 @@ $Colors = @{
     White = "White"
 }
 
-# 辅助函数
+# Helper functions
 function Write-ColorText {
     param(
         [string]$Text,
@@ -89,43 +89,34 @@ function Test-Command {
     }
 }
 
-function Read-SecureInput {
-    param([string]$Prompt, [string]$DefaultValue = "")
-    $input = Read-Host "$Prompt"
-    if ([string]::IsNullOrEmpty($input)) {
-        return $DefaultValue
-    }
-    return $input
-}
-
-# 主程序开始
-Write-ColorText "🪟 Windows AI Agent Prompt Generator 部署脚本" "Success"
+# Main program starts
+Write-ColorText "🪟 Windows AI Agent Prompt Generator Deployment Script" "Success"
 Write-ColorText "=================================================" "Success"
 Write-Host ""
 
-# 显示配置信息
-Write-Host "📋 部署配置:" -ForegroundColor $Colors.Info
-Write-Host "   环境: $Environment" -ForegroundColor $Colors.White
-Write-Host "   域名: $DOMAIN" -ForegroundColor $Colors.White
-Write-Host "   使用 Docker: $UseDocker" -ForegroundColor $Colors.White
-Write-Host "   跳过数据库: $SkipDatabase" -ForegroundColor $Colors.White
+# Display configuration
+Write-Host "📋 Deployment Configuration:" -ForegroundColor $Colors.Info
+Write-Host "   Environment: $Environment" -ForegroundColor $Colors.White
+Write-Host "   Domain: $DOMAIN" -ForegroundColor $Colors.White
+Write-Host "   Use Docker: $UseDocker" -ForegroundColor $Colors.White
+Write-Host "   Skip Database: $SkipDatabase" -ForegroundColor $Colors.White
 Write-Host ""
 
-# 检查管理员权限
-Write-Section "检查权限和依赖"
+# Check administrator permissions
+Write-Section "Checking Permissions and Dependencies"
 
 if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-    Write-Warning "请以管理员身份运行此脚本以获得最佳体验"
-    $choice = Read-Host "是否继续? (y/n)"
+    Write-Warning "Please run this script as Administrator for best experience"
+    $choice = Read-Host "Continue? (y/n)"
     if ($choice -ne 'y') {
-        Write-Error "部署已取消"
+        Write-Error "Deployment cancelled"
         exit 1
     }
 } else {
-    Write-Success "管理员权限检查通过"
+    Write-Success "Administrator permission check passed"
 }
 
-# 检查系统依赖
+# Check system dependencies
 $dependencies = @(
     @{ Name = "Python 3.11+"; Command = "python"; Version = "--version"; Pattern = "Python 3\.1[1-9]" },
     @{ Name = "Git"; Command = "git"; Version = "--version"; Pattern = "" },
@@ -141,23 +132,23 @@ foreach ($dep in $dependencies) {
             if ([string]::IsNullOrEmpty($dep.Pattern) -or $version -match $dep.Pattern) {
                 Write-Success "$($dep.Name): $version"
             } else {
-                Write-Warning "$($dep.Name): 版本不符合要求 ($version)"
+                Write-Warning "$($dep.Name): Version does not meet requirements ($version)"
                 $missingDeps += $dep.Name
             }
         } catch {
-            Write-Error "$($dep.Name): 检查失败"
+            Write-Error "$($dep.Name): Check failed"
             $missingDeps += $dep.Name
         }
     } else {
-        Write-Error "$($dep.Name): 未安装"
+        Write-Error "$($dep.Name): Not installed"
         $missingDeps += $dep.Name
     }
 }
 
 if ($missingDeps.Count -gt 0) {
-    Write-Host "`n❌ 缺少以下依赖:" -ForegroundColor $Colors.Error
+    Write-Host "`n❌ Missing dependencies:" -ForegroundColor $Colors.Error
     $missingDeps | ForEach-Object { Write-Host "   - $_" -ForegroundColor $Colors.White }
-    Write-Host "`n请安装缺少的依赖后重试:" -ForegroundColor $Colors.Warning
+    Write-Host "`nPlease install missing dependencies:" -ForegroundColor $Colors.Warning
     Write-Host "   Python: https://www.python.org/downloads/" -ForegroundColor $Colors.White
     Write-Host "   Git: https://git-scm.com/download/win" -ForegroundColor $Colors.White
     Write-Host "   Node.js: https://nodejs.org/" -ForegroundColor $Colors.White
@@ -165,14 +156,14 @@ if ($missingDeps.Count -gt 0) {
     exit 1
 }
 
-# 检查 Docker (如果需要)
+# Check Docker (if needed)
 if ($UseDocker) {
     if (Test-Command "docker") {
         try {
             $docker_version = docker --version 2>&1
             $docker_running = docker info 2>&1
             if ($LASTEXITCODE -eq 0) {
-                Write-Success "Docker: $docker_version (运行中)"
+                Write-Success "Docker: $docker_version (running)"
             } else {
                 Write-Warning "Docker: Installed but not running"
                 Write-Host "   Please start Docker Desktop" -ForegroundColor $Colors.White
@@ -189,39 +180,39 @@ if ($UseDocker) {
     }
 }
 
-# 获取用户配置
-Write-Section "配置应用参数"
+# Get user configuration
+Write-Section "Configure Application Parameters"
 
 if (-not $GLM_API_KEY) {
-    $GLM_API_KEY = Read-SecureInput "请输入 GLM API Key"
+    $GLM_API_KEY = Read-Host "Please enter GLM API Key"
 }
 
 if ([string]::IsNullOrEmpty($GLM_API_KEY)) {
-    Write-Error "GLM API Key 不能为空"
+    Write-Error "GLM API Key cannot be empty"
     exit 1
 }
 
-Write-Success "GLM API Key 已配置"
+Write-Success "GLM API Key configured"
 
-# 生成安全密钥和密码
-Write-Step "生成安全配置"
+# Generate security keys and passwords
+Write-Step "Generate Security Configuration"
 
 $db_password = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 32 | ForEach-Object {[char]$_})
 $redis_password = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 32 | ForEach-Object {[char]$_})
 $secret_key = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 64 | ForEach-Object {[char]$_})
 
-Write-Success "安全密钥已生成"
+Write-Success "Security keys generated"
 
-# 创建环境变量文件
-Write-Step "创建环境配置文件"
+# Create environment variable file
+Write-Step "Create Environment Configuration File"
 
 $env_content = @"
-# AI Agent Prompt Generator - Windows 部署配置
-# 生成时间: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
-# 环境: $Environment
+# AI Agent Prompt Generator - Windows Deployment Configuration
+# Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+# Environment: $Environment
 
 # =============================================================================
-# GLM API 配置
+# GLM API Configuration
 # =============================================================================
 GLM_API_KEY=$GLM_API_KEY
 GLM_BASE_URL=https://open.bigmodel.cn/api/paas/v4
@@ -230,7 +221,7 @@ GLM_TIMEOUT=60
 GLM_MAX_RETRIES=3
 
 # =============================================================================
-# 数据库配置
+# Database Configuration
 # =============================================================================
 DATABASE_URL=postgresql://prompt_gen_user:$db_password@localhost:5432/prompt_gen
 DATABASE_HOST=localhost
@@ -240,7 +231,7 @@ DATABASE_USER=prompt_gen_user
 DATABASE_PASSWORD=$db_password
 
 # =============================================================================
-# Redis 配置
+# Redis Configuration
 # =============================================================================
 REDIS_URL=redis://localhost:6379/0
 REDIS_HOST=localhost
@@ -248,7 +239,7 @@ REDIS_PORT=6379
 REDIS_DB=0
 
 # =============================================================================
-# 应用配置
+# Application Configuration
 # =============================================================================
 SECRET_KEY=$secret_key
 DEBUG=$($Environment -eq "development")
@@ -256,7 +247,7 @@ ENVIRONMENT=$Environment
 DOMAIN=$DOMAIN
 
 # =============================================================================
-# CORS 配置
+# CORS Configuration
 # =============================================================================
 CORS_ORIGINS=$(
     if ($Environment -eq "development") {
@@ -267,7 +258,7 @@ CORS_ORIGINS=$(
 )
 
 # =============================================================================
-# 性能配置
+# Performance Configuration
 # =============================================================================
 WORKERS=$(
     if ($Environment -eq "development") { "1" } else { "4" }
@@ -277,7 +268,7 @@ MAX_CONCURRENT_SESSIONS=$(
 )
 
 # =============================================================================
-# 日志配置
+# Logging Configuration
 # =============================================================================
 LOG_LEVEL=$(
     if ($Environment -eq "development") { "DEBUG" } else { "INFO" }
@@ -286,7 +277,7 @@ LOG_FILE=logs/$Environment.log
 LOG_FORMAT=json
 
 # =============================================================================
-# WebSocket 配置
+# WebSocket Configuration
 # =============================================================================
 WS_HEARTBEAT_INTERVAL=30
 WS_CONNECTION_TIMEOUT=300
@@ -295,20 +286,20 @@ WS_MAX_CONNECTIONS=$(
 )
 
 # =============================================================================
-# 安全配置
+# Security Configuration
 # =============================================================================
 JWT_ALGORITHM=HS256
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
 
 # =============================================================================
-# 文件配置
+# File Configuration
 # =============================================================================
 UPLOAD_PATH=uploads/
 MAX_FILE_SIZE=10485760
 ALLOWED_EXTENSIONS='.txt|.pdf|.doc|.docx|.md'
 "@
 
-# 创建 Docker Compose 文件 (如果使用 Docker)
+# Create Docker Compose file (if using Docker)
 if ($UseDocker) {
     $docker_compose_content = @"
 version: '3.8'
@@ -362,175 +353,175 @@ networks:
 "@
 
     $docker_compose_content | Out-File -FilePath "docker-compose.windows.yml" -Encoding UTF8
-    Write-Success "Docker Compose 文件已创建: docker-compose.windows.yml"
+    Write-Success "Docker Compose file created: docker-compose.windows.yml"
 
-    # 更新环境变量文件中的数据库连接信息
+    # Update database connection info in env file
     $env_content = $env_content -replace "DATABASE_URL=postgresql://prompt_gen_user:.*@localhost:5432/prompt_gen", "DATABASE_URL=postgresql://prompt_gen_user:$db_password@localhost:5432/prompt_gen"
     $env_content = $env_content -replace "REDIS_URL=redis://localhost:6379/0", "REDIS_URL=redis://:$redis_password@localhost:6379/0"
 }
 
 $env_content | Out-File -FilePath ".env" -Encoding UTF8
-Write-Success "环境配置文件已创建: .env"
+Write-Success "Environment configuration file created: .env"
 
-# 设置数据库
+# Setup database
 if (-not $SkipDatabase) {
-    Write-Section "配置数据库服务"
+    Write-Section "Configure Database Services"
 
     if ($UseDocker) {
-        Write-Step "启动 Docker 数据库服务"
+        Write-Step "Starting Docker Database Services"
 
         try {
             docker-compose -f docker-compose.windows.yml down 2>$null
             docker-compose -f docker-compose.windows.yml up -d
 
-            Write-Host "⏳ 等待数据库服务启动..." -ForegroundColor $Colors.Warning
+            Write-Host "⏳ Waiting for database services to start..." -ForegroundColor $Colors.Warning
             Start-Sleep -Seconds 15
 
-            # 检查服务状态
+            # Check service status
             $postgres_status = docker-compose -f docker-compose.windows.yml ps -q postgres | ForEach-Object { docker inspect $_ --format='{{.State.Status}}' }
             $redis_status = docker-compose -f docker-compose.windows.yml ps -q redis | ForEach-Object { docker inspect $_ --format='{{.State.Status}}' }
 
             if ($postgres_status -eq "running") {
-                Write-Success "PostgreSQL 服务已启动"
+                Write-Success "PostgreSQL service started"
             } else {
-                Write-Error "PostgreSQL 服务启动失败"
+                Write-Error "PostgreSQL service failed to start"
                 docker-compose -f docker-compose.windows.yml logs postgres
                 exit 1
             }
 
             if ($redis_status -eq "running") {
-                Write-Success "Redis 服务已启动"
+                Write-Success "Redis service started"
             } else {
-                Write-Error "Redis 服务启动失败"
+                Write-Error "Redis service failed to start"
                 docker-compose -f docker-compose.windows.yml logs redis
                 exit 1
             }
 
-            Write-Success "Docker 数据库服务启动成功"
+            Write-Success "Docker database services started successfully"
         } catch {
-            Write-Error "Docker 服务启动失败: $($_.Exception.Message)"
+            Write-Error "Docker service startup failed: $($_.Exception.Message)"
             exit 1
         }
     } else {
-        Write-Step "检查本地数据库服务"
+        Write-Step "Checking Local Database Services"
 
-        # 检查 PostgreSQL
+        # Check PostgreSQL
         try {
             $postgres_services = Get-Service -Name "postgresql*" -ErrorAction SilentlyContinue
             if ($postgres_services) {
                 $postgres_service = $postgres_services | Where-Object { $_.Status -eq "Running" } | Select-Object -First 1
                 if ($postgres_service) {
-                    Write-Success "PostgreSQL 服务正在运行: $($postgres_service.Name)"
+                    Write-Success "PostgreSQL service running: $($postgres_service.Name)"
                 } else {
-                    Write-Warning "PostgreSQL 服务未运行，尝试启动..."
+                    Write-Warning "PostgreSQL service not running, attempting to start..."
                     try {
                         Start-Service -Name $postgres_services[0].Name -ErrorAction Stop
-                        Write-Success "PostgreSQL 服务已启动"
+                        Write-Success "PostgreSQL service started"
                     } catch {
-                        Write-Error "无法启动 PostgreSQL 服务，请手动检查"
-                        Write-Host "   可能需要安装 PostgreSQL: choco install postgresql" -ForegroundColor $Colors.White
+                        Write-Error "Cannot start PostgreSQL service, please check manually"
+                        Write-Host "   May need to install PostgreSQL: choco install postgresql" -ForegroundColor $Colors.White
                     }
                 }
             } else {
-                Write-Warning "PostgreSQL 服务未找到"
-                Write-Host "   安装命令: choco install postgresql" -ForegroundColor $Colors.White
-                Write-Host "   或访问: https://www.postgresql.org/download/windows/" -ForegroundColor $Colors.White
+                Write-Warning "PostgreSQL service not found"
+                Write-Host "   Install command: choco install postgresql" -ForegroundColor $Colors.White
+                Write-Host "   Or visit: https://www.postgresql.org/download/windows/" -ForegroundColor $Colors.White
             }
         } catch {
-            Write-Warning "检查 PostgreSQL 服务时出错"
+            Write-Warning "Error checking PostgreSQL service"
         }
 
-        # 检查 Redis
+        # Check Redis
         try {
             $redis_service = Get-Service -Name "redis" -ErrorAction SilentlyContinue
             if ($redis_service) {
                 if ($redis_service.Status -eq "Running") {
-                    Write-Success "Redis 服务正在运行"
+                    Write-Success "Redis service is running"
                 } else {
-                    Write-Warning "Redis 服务未运行，尝试启动..."
+                    Write-Warning "Redis service not running, attempting to start..."
                     try {
                         Start-Service -Name "redis" -ErrorAction Stop
-                        Write-Success "Redis 服务已启动"
+                        Write-Success "Redis service started"
                     } catch {
                         Write-Error "Cannot start Redis service, please check manually"
                         Write-Host "   May need to install Redis: choco install redis-64" -ForegroundColor $Colors.White
                     }
                 }
             } else {
-                Write-Warning "Redis 服务未找到"
-                Write-Host "   安装命令: choco install redis-64" -ForegroundColor $Colors.White
+                Write-Warning "Redis service not found"
+                Write-Host "   Install command: choco install redis-64" -ForegroundColor $Colors.White
             }
         } catch {
-            Write-Warning "检查 Redis 服务时出错"
+            Write-Warning "Error checking Redis service"
         }
     }
 } else {
-    Write-Warning "跳过数据库配置"
+    Write-Warning "Skipping database configuration"
 }
 
-# 部署后端应用
-Write-Section "部署后端应用"
+# Deploy backend application
+Write-Section "Deploy Backend Application"
 
 Set-Location backend
 
-# 检查后端目录结构
+# Check backend directory structure
 if (-not (Test-Path "requirements.txt")) {
-    Write-Error "后端目录缺少 requirements.txt 文件"
+    Write-Error "Backend directory missing requirements.txt file"
     Set-Location ..
     exit 1
 }
 
-Write-Step "配置 Python 虚拟环境"
+Write-Step "Configure Python Virtual Environment"
 
-# 创建虚拟环境
+# Create virtual environment
 if (-not (Test-Path "venv")) {
-    Write-Host "📦 创建 Python 虚拟环境..." -ForegroundColor $Colors.Warning
+    Write-Host "📦 Creating Python virtual environment..." -ForegroundColor $Colors.Warning
     try {
         python -m venv venv
-        Write-Success "虚拟环境创建成功"
+        Write-Success "Virtual environment created successfully"
     } catch {
-        Write-Error "虚拟环境创建失败: $($_.Exception.Message)"
+        Write-Error "Virtual environment creation failed: $($_.Exception.Message)"
         Set-Location ..
         exit 1
     }
 }
 
-# 激活虚拟环境
-Write-Step "激活虚拟环境"
+# Activate virtual environment
+Write-Step "Activate Virtual Environment"
 try {
     & ".\venv\Scripts\Activate.ps1"
-    Write-Success "虚拟环境已激活"
+    Write-Success "Virtual environment activated"
 } catch {
-    Write-Error "虚拟环境激活失败，请检查 PowerShell 执行策略"
-    Write-Host "   运行: Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser" -ForegroundColor $Colors.White
+    Write-Error "Virtual environment activation failed, please check PowerShell execution policy"
+    Write-Host "   Run: Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser" -ForegroundColor $Colors.White
     Set-Location ..
     exit 1
 }
 
-# 安装依赖
-Write-Step "安装 Python 依赖"
+# Install dependencies
+Write-Step "Install Python Dependencies"
 try {
     pip install -r requirements.txt --upgrade
-    Write-Success "Python 依赖安装完成"
+    Write-Success "Python dependencies installed"
 } catch {
-    Write-Error "Python 依赖安装失败: $($_.Exception.Message)"
+    Write-Error "Python dependencies installation failed: $($_.Exception.Message)"
     Set-Location ..
     exit 1
 }
 
-# 数据库迁移
+# Database migration
 if (-not $SkipDatabase -and (Test-Path "alembic.ini")) {
-    Write-Step "运行数据库迁移"
+    Write-Step "Run Database Migration"
     try {
         python -m alembic upgrade head
-        Write-Success "数据库迁移完成"
+        Write-Success "Database migration completed"
     } catch {
-        Write-Warning "数据库迁移失败或不需要迁移: $($_.Exception.Message)"
+        Write-Warning "Database migration failed or not needed: $($_.Exception.Message)"
     }
 }
 
-# 启动后端服务
-Write-Step "启动后端服务"
+# Start backend service
+Write-Step "Start Backend Service"
 try {
     $backend_log = "..\logs\backend.log"
     $logs_dir = "..\logs"
@@ -538,7 +529,7 @@ try {
         New-Item -ItemType Directory -Path $logs_dir -Force | Out-Null
     }
 
-    # 启动后端服务 (后台)
+    # Start backend service (background)
     $startInfo = New-Object System.Diagnostics.ProcessStartInfo
     $startInfo.FileName = "powershell.exe"
     $startInfo.Arguments = "-Command cd '$PWD'; .\venv\Scripts\Activate.ps1; python -m uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload *>&1 | Tee-Object -FilePath '$backend_log'"
@@ -547,84 +538,64 @@ try {
 
     $process = [System.Diagnostics.Process]::Start($startInfo)
 
-    Write-Host "⏳ 等待后端服务启动..." -ForegroundColor $Colors.Warning
+    Write-Host "⏳ Waiting for backend service to start..." -ForegroundColor $Colors.Warning
     Start-Sleep -Seconds 5
 
-    # 检查服务是否启动成功
+    # Check if service started successfully
     try {
         $response = Invoke-WebRequest -Uri "http://localhost:8000/health" -TimeoutSec 10 -ErrorAction Stop
         if ($response.StatusCode -eq 200) {
-            Write-Success "后端服务启动成功 (PID: $($process.Id))"
+            Write-Success "Backend service started successfully (PID: $($process.Id))"
         } else {
-            Write-Warning "后端服务可能启动失败，请检查日志"
+            Write-Warning "Backend service may have failed to start, please check logs"
         }
     } catch {
-        Write-Warning "后端服务健康检查失败，请手动检查: $backend_log"
+        Write-Warning "Backend service health check failed, please check manually: $backend_log"
     }
 } catch {
-    Write-Error "后端服务启动失败: $($_.Exception.Message)"
+    Write-Error "Backend service startup failed: $($_.Exception.Message)"
 }
 
 Set-Location ..
 
-# 部署前端应用
-Write-Section "部署前端应用"
+# Deploy frontend application
+Write-Section "Deploy Frontend Application"
 
 Set-Location frontend
 
-# 检查前端目录结构
+# Check frontend directory structure
 if (-not (Test-Path "package.json")) {
-    Write-Error "前端目录缺少 package.json 文件"
+    Write-Error "Frontend directory missing package.json file"
     Set-Location ..
     exit 1
 }
 
-Write-Step "安装 Node.js 依赖"
+Write-Step "Install Node.js Dependencies"
 try {
-    # 清理旧的 node_modules 和 lock 文件（如果存在）
-    if (Test-Path "node_modules") {
-        Write-Host "🧹 清理旧的依赖..." -ForegroundColor $Colors.Warning
-        Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue
-    }
-    if (Test-Path "package-lock.json") {
-        Remove-Item -Force "package-lock.json" -ErrorAction SilentlyContinue
-    }
-    
-    # 尝试正常安装
     npm install
-    if ($LASTEXITCODE -eq 0) {
-        Write-Success "Node.js 依赖安装完成"
-    } else {
-        Write-Warning "使用 --legacy-peer-deps 重试安装..."
-        npm install --legacy-peer-deps
-        if ($LASTEXITCODE -eq 0) {
-            Write-Success "Node.js 依赖安装完成（使用 --legacy-peer-deps）"
-        } else {
-            throw "npm install 失败"
-        }
-    }
+    Write-Success "Node.js dependencies installed"
 } catch {
-    Write-Error "Node.js 依赖安装失败: $($_.Exception.Message)"
+    Write-Error "Node.js dependencies installation failed: $($_.Exception.Message)"
     Set-Location ..
     exit 1
 }
 
-# 构建前端 (生产环境)
+# Build frontend (production environment)
 if ($Environment -eq "production") {
-    Write-Step "构建生产版本"
+    Write-Step "Build Production Version"
     try {
         npm run build
-        Write-Success "生产版本构建完成"
+        Write-Success "Production version built successfully"
     } catch {
-        Write-Error "前端构建失败: $($_.Exception.Message)"
+        Write-Error "Frontend build failed: $($_.Exception.Message)"
         Set-Location ..
         exit 1
     }
 }
 
-# 启动前端服务 (开发环境)
+# Start frontend service (development environment)
 if ($Environment -eq "development") {
-    Write-Step "启动前端开发服务器"
+    Write-Step "Start Frontend Development Server"
     try {
         $frontend_log = "..\logs\frontend.log"
 
@@ -636,62 +607,62 @@ if ($Environment -eq "development") {
 
         $process = [System.Diagnostics.Process]::Start($startInfo)
 
-        Write-Host "⏳ 等待前端服务启动..." -ForegroundColor $Colors.Warning
+        Write-Host "⏳ Waiting for frontend service to start..." -ForegroundColor $Colors.Warning
         Start-Sleep -Seconds 10
 
-        Write-Success "前端开发服务器已启动 (PID: $($process.Id))"
+        Write-Success "Frontend development server started (PID: $($process.Id))"
     } catch {
-        Write-Warning "前端服务启动可能失败，请手动检查"
+        Write-Warning "Frontend service startup may have failed, please check manually"
     }
 }
 
 Set-Location ..
 
-# 部署完成
-Write-Section "部署完成"
+# Deployment complete
+Write-Section "Deployment Complete"
 
-Write-Success "🎉 部署完成!"
+Write-Success "🎉 Deployment Complete!"
 Write-Host ""
 
-Write-Host "📱 访问地址:" -ForegroundColor $Colors.Info
-Write-Host "   前端: http://localhost:3000" -ForegroundColor $Colors.White
+Write-Host "📱 Access URLs:" -ForegroundColor $Colors.Info
+Write-Host "   Frontend: http://localhost:3000" -ForegroundColor $Colors.White
 if ($Environment -eq "production") {
-    Write-Host "   生产构建: ./frontend/build/ 目录" -ForegroundColor $Colors.White
+    Write-Host "   Production Build: ./frontend/build/ directory" -ForegroundColor $Colors.White
 }
-Write-Host "   后端 API: http://localhost:8000" -ForegroundColor $Colors.White
-Write-Host "   API 文档: http://localhost:8000/docs" -ForegroundColor $Colors.White
-Write-Host "   健康检查: http://localhost:8000/health" -ForegroundColor $Colors.White
+Write-Host "   Backend API: http://localhost:8000" -ForegroundColor $Colors.White
+Write-Host "   API Documentation: http://localhost:8000/docs" -ForegroundColor $Colors.White
+Write-Host "   Health Check: http://localhost:8000/health" -ForegroundColor $Colors.White
 Write-Host ""
 
-Write-Host "📋 管理命令:" -ForegroundColor $Colors.Info
-Write-Host "   查看进程: Get-Process python, node" -ForegroundColor $Colors.White
-Write-Host "   终止进程: Stop-Process -Name python, node" -ForegroundColor $Colors.White
-Write-Host "   查看端口: netstat -ano | findstr :8000" -ForegroundColor $Colors.White
+Write-Host "📋 Management Commands:" -ForegroundColor $Colors.Info
+Write-Host "   View processes: Get-Process python, node" -ForegroundColor $Colors.White
+Write-Host "   Stop processes: Stop-Process -Name python, node" -ForegroundColor $Colors.White
+Write-Host "   View ports: netstat -ano | findstr :8000" -ForegroundColor $Colors.White
 if ($UseDocker) {
-    Write-Host "   Docker 状态: docker-compose -f docker-compose.windows.yml ps" -ForegroundColor $Colors.White
-    Write-Host "   Docker 日志: docker-compose -f docker-compose.windows.yml logs" -ForegroundColor $Colors.White
-    Write-Host "   停止 Docker: docker-compose -f docker-compose.windows.yml down" -ForegroundColor $Colors.White
+    Write-Host "   Docker status: docker-compose -f docker-compose.windows.yml ps" -ForegroundColor $Colors.White
+    Write-Host "   Docker logs: docker-compose -f docker-compose.windows.yml logs" -ForegroundColor $Colors.White
+    Write-Host "   Stop Docker: docker-compose -f docker-compose.windows.yml down" -ForegroundColor $Colors.White
 }
 Write-Host ""
 
-Write-Host "📝 日志文件:" -ForegroundColor $Colors.Info
-Write-Host "   后端日志: ./logs/backend.log" -ForegroundColor $Colors.White
-Write-Host "   前端日志: ./logs/frontend.log" -ForegroundColor $Colors.White
-Write-Host "   应用日志: ./logs/$Environment.log" -ForegroundColor $Colors.White
+Write-Host "📝 Log Files:" -ForegroundColor $Colors.Info
+Write-Host "   Backend log: ./logs/backend.log" -ForegroundColor $Colors.White
+Write-Host "   Frontend log: ./logs/frontend.log" -ForegroundColor $Colors.White
+Write-Host "   Application log: ./logs/$Environment.log" -ForegroundColor $Colors.White
 Write-Host ""
 
-Write-Host "🔧 环境配置:" -ForegroundColor $Colors.Info
-Write-Host "   配置文件: ./.env" -ForegroundColor $Colors.White
+Write-Host "🔧 Environment Configuration:" -ForegroundColor $Colors.Info
+Write-Host "   Configuration file: ./.env" -ForegroundColor $Colors.White
 if ($UseDocker) {
-    Write-Host "   Docker 配置: ./docker-compose.windows.yml" -ForegroundColor $Colors.White
+    Write-Host "   Docker configuration: ./docker-compose.windows.yml" -ForegroundColor $Colors.White
 }
 Write-Host ""
 
-Write-Host "⚠️  注意事项:" -ForegroundColor $Colors.Warning
-Write-Host "   1. 请确保防火墙允许端口 3000, 8000 的访问" -ForegroundColor $Colors.White
-Write-Host "   2. 生产环境请配置真实的域名和 SSL 证书" -ForegroundColor $Colors.White
-Write-Host "   3. 定期备份 .env 文件和数据库" -ForegroundColor $Colors.White
-Write-Host "   4. 监控日志文件以了解应用状态" -ForegroundColor $Colors.White
+Write-Host "⚠️  Important Notes:" -ForegroundColor $Colors.Warning
+Write-Host "   1. Please ensure firewall allows ports 3000, 8000 access" -ForegroundColor $Colors.White
+Write-Host "   2. Production environment please configure real domain and SSL certificates" -ForegroundColor $Colors.White
+Write-Host "   3. Regular backup of .env file and database" -ForegroundColor $Colors.White
+Write-Host "   4. Monitor log files to understand application status" -ForegroundColor $Colors.White
 
 Write-Host ""
-Write-ColorText "感谢使用 AI Agent Prompt Generator! 🚀" "Success"
+Write-ColorText "Thank you for using AI Agent Prompt Generator! 🚀" "Success"

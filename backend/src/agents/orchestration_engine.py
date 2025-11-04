@@ -13,15 +13,13 @@ from .interfaces import (
     AgentContext,
     AgentResponse,
     MessageType,
-    AgentType,
-    ConversationContext,
-    Message
+    AgentType
 )
 from .product_manager import ProductManagerAgent
 from .technical_developer import TechnicalDeveloperAgent
 from .team_lead import TeamLeadAgent
 from .conversation_manager import ConversationManager
-from .state_tracker import StateTracker
+from .state_tracker import AgentStateTracker
 from ..services.glm_api import GLMApiClient
 
 logger = logging.getLogger(__name__)
@@ -50,13 +48,13 @@ class AgentOrchestrationEngine:
         self.glm_client = glm_client or GLMApiClient()
 
         # Initialize agents
-        self.product_manager = ProductManagerAgent(self.glm_client)
+        self.product_manager = ProductManagerAgent()
         self.technical_developer = TechnicalDeveloperAgent(self.glm_client)
         self.team_lead = TeamLeadAgent(self.glm_client)
 
         # Initialize support components
-        self.conversation_manager = ConversationManager()
-        self.state_tracker = StateTracker()
+        self.conversation_manager = None  # TODO: Initialize when session_id is available
+        self.state_tracker = None  # TODO: Initialize when session_id is available
 
         # Orchestration state
         self.current_state = OrchestrationState.INITIALIZING
@@ -112,10 +110,7 @@ class AgentOrchestrationEngine:
                 user_requirements=user_requirements,
                 current_iteration=0,
                 max_iterations=max_iterations,
-                conversation_context=ConversationContext(
-                    session_id=session_id,
-                    message_history=[]
-                )
+                conversation_history=[]
             )
 
             # Start with Product Manager
@@ -393,10 +388,7 @@ class AgentOrchestrationEngine:
             supplementary_inputs=session_data.get("supplementary_inputs", []),
             clarifying_questions=session_data.get("pending_questions", []),
             agent_outputs=session_data.get("agent_outputs", {}),
-            conversation_context=ConversationContext(
-                session_id=session_data["session_id"],
-                message_history=session_data.get("conversation_history", [])
-            )
+            conversation_history=session_data.get("conversation_history", [])
         )
 
     def _determine_next_agent(self, session_data: Dict[str, Any]) -> Optional[object]:

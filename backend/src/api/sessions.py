@@ -16,7 +16,7 @@ from ..database.connection import get_async_session
 from ..models.session import Session as SessionModel, AgentMessage
 from ..agents.orchestration_engine import AgentOrchestrationEngine
 from ..services.glm_api import GLMApiClient
-from ..core.exceptions import SessionNotFoundError, SessionAlreadyStartedError
+from ..core.exceptions import SessionError
 from ..core.logging import get_logger
 
 logger = get_logger(__name__)

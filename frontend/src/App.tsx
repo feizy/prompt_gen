@@ -7,6 +7,7 @@ import { useSelector } from 'react-redux';
 
 import ErrorBoundary from './components/ErrorBoundary';
 import CreateSessionModal from './components/CreateSessionModal';
+import ApiTest from './components/ApiTest';
 import Dashboard from './pages/Dashboard';
 import ActiveSession from './pages/ActiveSession';
 import History from './pages/History';
@@ -39,6 +40,7 @@ function AppContent() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/session/:sessionId" element={<ActiveSession />} />
         <Route path="/history" element={<History />} />
+        <Route path="/test" element={<ApiTest />} />
       </Routes>
 
       <CreateSessionModal

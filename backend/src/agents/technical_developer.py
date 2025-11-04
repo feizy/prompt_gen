@@ -14,9 +14,9 @@ from .interfaces import (
     AgentResponse,
     MessageType,
     AgentType,
-    AgentCapability,
-    ConversationContext
+    AgentCapability
 )
+from ..services.glm_response_parser import ParsedAgentResponse
 from .message_formatter import MessageFormatter
 from ..services.glm_api import GLMApiClient
 from ..services.glm_response_parser import GLMResponseParser
@@ -35,8 +35,7 @@ class TechnicalDeveloperAgent(BaseAgent):
 
     def __init__(self, glm_client: Optional[GLMApiClient] = None):
         """Initialize Technical Developer Agent"""
-        super().__init__()
-        self.agent_type = AgentType.TECHNICAL_DEVELOPER
+        super().__init__(AgentType.TECHNICAL_DEVELOPER)
         self.agent_name = "Technical Developer"
         self.glm_client = glm_client or GLMApiClient()
         self.response_parser = GLMResponseParser()
@@ -513,6 +512,91 @@ Provide a refined technical solution that shows clear improvements over previous
             "indicators": complexity_indicators,
             "total_indicators": total_indicators
         }
+
+    def _build_system_prompt(self, context: AgentContext) -> str:
+        """Build system prompt for the Technical Developer agent"""
+        prompt_parts = [
+            self.system_prompt,
+            "\n=== CURRENT CONTEXT ===",
+            f"Session ID: {context.session_id}",
+            f"Iteration: {context.current_iteration + 1} of {context.max_iterations}",
+            f"User Requirements: {context.user_requirements}",
+        ]
+
+        # Add conversation context if available
+        if context.conversation_context and context.conversation_context.message_history:
+            recent_messages = context.conversation_context.message_history[-3:]  # Last 3 messages
+            prompt_parts.append("\n=== RECENT CONVERSATION ===")
+            for msg in recent_messages:
+                prompt_parts.append(f"{msg.agent_type}: {msg.content}")
+
+        # Add supplementary inputs if any
+        if context.supplementary_inputs:
+            prompt_parts.append("\n=== SUPPLEMENTARY USER INPUTS ===")
+            for i, input_data in enumerate(context.supplementary_inputs):
+                prompt_parts.append(f"Input {i+1}: {input_data.get('content', 'No content')}")
+
+        # Add previous agent outputs if available
+        if context.agent_outputs:
+            prompt_parts.append("\n=== PREVIOUS AGENT OUTPUTS ===")
+            for agent, output in context.agent_outputs.items():
+                prompt_parts.append(f"{agent.upper()}: {output.get('content', 'No content')}")
+
+        # Add current task instruction based on iteration
+        if context.current_iteration == 0:
+            prompt_parts.append("\n=== YOUR TASK ===")
+            prompt_parts.append("Analyze the user requirements and provide a comprehensive technical solution design.")
+        else:
+            prompt_parts.append("\n=== YOUR TASK ===")
+            prompt_parts.append("Review the feedback and refine your technical solution accordingly.")
+
+        return "\n".join(prompt_parts)
+
+    async def _agent_specific_validation(
+        self,
+        response: ParsedAgentResponse,
+        context: AgentContext
+    ) -> ParsedAgentResponse:
+        """Perform Technical Developer specific validation"""
+        try:
+            # Validate technical completeness
+            content_lower = response.content.lower()
+
+            # Check for essential technical components
+            required_sections = [
+                ('architecture', 'architecture or system design'),
+                ('technology', 'technology stack or technologies'),
+                ('implementation', 'implementation or development approach'),
+                ('data', 'data model or database design')
+            ]
+
+            missing_sections = []
+            for section, keywords in required_sections:
+                if not any(keyword in content_lower for keyword in keywords.split(' or ')):
+                    missing_sections.append(section)
+
+            if missing_sections:
+                logger.warning(f"Technical Developer response missing sections: {missing_sections}")
+                response.metadata['validation_warnings'] = missing_sections
+
+            # Validate technical feasibility
+            if len(response.content) < 200:
+                raise ValueError("Technical Developer response too brief - provide detailed technical analysis")
+
+            # Add technical-specific metadata
+            response.metadata.update({
+                'has_architecture': 'architecture' in content_lower or 'system design' in content_lower,
+                'has_technology_stack': 'technology' in content_lower or 'stack' in content_lower,
+                'has_implementation': 'implementation' in content_lower or 'development' in content_lower,
+                'complexity_score': self._assess_technical_complexity(response.content),
+                'validated_at': datetime.utcnow().isoformat()
+            })
+
+            return response
+
+        except Exception as e:
+            logger.error(f"Technical Developer validation failed: {e}")
+            raise ValueError(f"Technical Developer validation failed: {str(e)}")
 
     async def get_status(self) -> Dict[str, Any]:
         """Get Technical Developer agent status"""

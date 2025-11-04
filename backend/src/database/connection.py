@@ -51,6 +51,21 @@ async def get_db_session() -> AsyncSession:
             await session.close()
 
 
+async def get_async_session():
+    """Get database session for FastAPI dependency injection"""
+    if not async_session_maker:
+        raise RuntimeError("Database not initialized. Call init_db() first.")
+
+    async def dependency() -> AsyncSession:
+        async with async_session_maker() as session:
+            try:
+                yield session
+            finally:
+                await session.close()
+
+    return dependency
+
+
 async def close_db() -> None:
     """Close database connection"""
     global engine

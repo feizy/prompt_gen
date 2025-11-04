@@ -29,7 +29,7 @@ class Session(Base):
     max_interventions = Column(Integer, default=3)
     waiting_for_user_since = Column(DateTime(timezone=True), nullable=True)
     current_question_id = Column(UUID(as_uuid=True), nullable=True)
-    metadata = Column(JSON, default=dict)
+    session_metadata = Column(JSON, default=dict)
 
     def __repr__(self) -> str:
         return f"<Session(id={self.id}, status={self.status})>"
@@ -49,7 +49,7 @@ class AgentMessage(Base):
     parent_message_id = Column(UUID(as_uuid=True), ForeignKey("agent_messages.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     processing_time_ms = Column(Integer, nullable=True)
-    metadata = Column(JSON, default=dict)
+    session_metadata = Column(JSON, default=dict)
 
     def __repr__(self) -> str:
         return f"<AgentMessage(id={self.id}, agent_type={self.agent_type}, sequence={self.sequence_number})>"
@@ -68,7 +68,7 @@ class SupplementaryUserInput(Base):
     processing_status = Column(String(20), default="pending")
     incorporated_into_requirements = Column(Boolean, default=False)
     sequence_number = Column(Integer, nullable=False)
-    metadata = Column(JSON, default=dict)
+    session_metadata = Column(JSON, default=dict)
 
     def __repr__(self) -> str:
         return f"<SupplementaryUserInput(id={self.id}, type={self.input_type}, status={self.processing_status})>"
@@ -91,7 +91,7 @@ class ClarifyingQuestion(Base):
     responded_at = Column(DateTime(timezone=True), nullable=True)
     agent_type = Column(String(20), default="product_manager")
     sequence_number = Column(Integer, nullable=False)
-    metadata = Column(JSON, default=dict)
+    session_metadata = Column(JSON, default=dict)
 
     def __repr__(self) -> str:
         return f"<ClarifyingQuestion(id={self.id}, status={self.status}, priority={self.priority})>"
@@ -111,7 +111,7 @@ class SessionWaitingState(Base):
     status = Column(String(20), default="active")  # active, resolved, timeout, cancelled
     related_entity_id = Column(UUID(as_uuid=True), nullable=True)
     timeout_duration_seconds = Column(Integer, default=30)
-    metadata = Column(JSON, default=dict)
+    session_metadata = Column(JSON, default=dict)
 
     def __repr__(self) -> str:
         return f"<SessionWaitingState(id={self.id}, type={self.waiting_type}, status={self.status})>"

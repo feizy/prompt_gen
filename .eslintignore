@@ -1,0 +1,13 @@
+node_modules/
+build/
+dist/
+coverage/
+*.log
+.env*
+.vscode/
+.idea/
+*.min.js
+*.bundle.js
+.cache/
+.temp/
+.tmp/

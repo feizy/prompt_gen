@@ -15,7 +15,7 @@ from sqlalchemy import desc, func
 from ..database.connection import get_async_session
 from ..models.session import Session as SessionModel, SupplementaryUserInput
 from ..agents.orchestration_engine import AgentOrchestrationEngine
-from ..core.exceptions import SessionNotFoundError, InvalidUserInputError
+from ..core.exceptions import SessionError
 from ..core.logging import get_logger
 
 logger = get_logger(__name__)

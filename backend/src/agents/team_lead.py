@@ -14,9 +14,9 @@ from .interfaces import (
     AgentResponse,
     MessageType,
     AgentType,
-    AgentCapability,
-    ConversationContext
+    AgentCapability
 )
+from ..services.glm_response_parser import ParsedAgentResponse
 from .message_formatter import MessageFormatter
 from ..services.glm_api import GLMApiClient
 from ..services.glm_response_parser import GLMResponseParser
@@ -36,8 +36,7 @@ class TeamLeadAgent(BaseAgent):
 
     def __init__(self, glm_client: Optional[GLMApiClient] = None):
         """Initialize Team Lead Agent"""
-        super().__init__()
-        self.agent_type = AgentType.TEAM_LEAD
+        super().__init__(AgentType.TEAM_LEAD)
         self.agent_name = "Team Lead"
         self.glm_client = glm_client or GLMApiClient()
         self.response_parser = GLMResponseParser()
@@ -185,7 +184,7 @@ Communication style:
 {technical_solution}
 
 **Review Instructions:**
-This is iteration {context.current_iteration + 1} of {context.max_iterations maximum iterations}.
+This is iteration {context.current_iteration + 1} of {context.max_iterations} maximum iterations.
 
 Please provide a comprehensive review covering:
 
@@ -540,6 +539,94 @@ This is your final decision - be decisive and provide clear justification."""
         score += iteration_progress * 0.4
 
         return min(score, max_score)
+
+    def _build_system_prompt(self, context: AgentContext) -> str:
+        """Build system prompt for the Team Lead agent"""
+        prompt_parts = [
+            self.system_prompt,
+            "\n=== CURRENT CONTEXT ===",
+            f"Session ID: {context.session_id}",
+            f"Iteration: {context.current_iteration + 1} of {context.max_iterations}",
+            f"User Requirements: {context.user_requirements}",
+        ]
+
+        # Add conversation context if available
+        if context.conversation_context and context.conversation_context.message_history:
+            recent_messages = context.conversation_context.message_history[-3:]  # Last 3 messages
+            prompt_parts.append("\n=== RECENT CONVERSATION ===")
+            for msg in recent_messages:
+                prompt_parts.append(f"{msg.agent_type}: {msg.content}")
+
+        # Add supplementary inputs if any
+        if context.supplementary_inputs:
+            prompt_parts.append("\n=== SUPPLEMENTARY USER INPUTS ===")
+            for i, input_data in enumerate(context.supplementary_inputs):
+                prompt_parts.append(f"Input {i+1}: {input_data.get('content', 'No content')}")
+
+        # Add previous agent outputs if available
+        if context.agent_outputs:
+            prompt_parts.append("\n=== PREVIOUS AGENT OUTPUTS ===")
+            for agent, output in context.agent_outputs.items():
+                prompt_parts.append(f"{agent.upper()}: {output.get('content', 'No content')}")
+
+        # Add current task instruction based on iteration
+        if context.current_iteration == 0:
+            prompt_parts.append("\n=== YOUR TASK ===")
+            prompt_parts.append("Review the product requirements and technical solution. Provide constructive feedback and approve or request changes.")
+        else:
+            prompt_parts.append("\n=== YOUR TASK ===")
+            prompt_parts.append("Review the updated solutions based on previous feedback. Determine if they're ready for implementation or need further refinement.")
+
+        return "\n".join(prompt_parts)
+
+    async def _agent_specific_validation(
+        self,
+        response: ParsedAgentResponse,
+        context: AgentContext
+    ) -> ParsedAgentResponse:
+        """Perform Team Lead specific validation"""
+        try:
+            # Validate decision clarity
+            content_lower = response.content.lower()
+
+            # Check for clear decision (approve/reject)
+            has_approval = any(word in content_lower for word in ['approve', 'approved', 'accept', 'accepted'])
+            has_rejection = any(word in content_lower for word in ['reject', 'rejected', 'need', 'requires', 'revise', 'revision'])
+            has_feedback = len(response.content) > 100  # Substantial feedback provided
+
+            if not (has_approval or has_rejection):
+                raise ValueError("Team Lead response must include clear approval or rejection decision")
+
+            if not has_feedback and has_rejection:
+                raise ValueError("Team Lead rejection must include constructive feedback")
+
+            # Validate review completeness
+            review_elements = [
+                ('requirements_review', 'requirement' in content_lower),
+                ('technical_review', 'technical' in content_lower or 'solution' in content_lower),
+                ('feedback_quality', len(response.content) > 200)
+            ]
+
+            missing_elements = [elem for elem, present in review_elements if not present]
+            if missing_elements:
+                logger.warning(f"Team Lead response missing review elements: {missing_elements}")
+                response.metadata['validation_warnings'] = missing_elements
+
+            # Add team lead specific metadata
+            response.metadata.update({
+                'decision_type': 'approval' if has_approval else 'rejection',
+                'has_feedback': has_feedback,
+                'feedback_length': len(response.content),
+                'review_completeness': len(review_elements) - len(missing_elements),
+                'decision_authority': True,
+                'validated_at': datetime.utcnow().isoformat()
+            })
+
+            return response
+
+        except Exception as e:
+            logger.error(f"Team Lead validation failed: {e}")
+            raise ValueError(f"Team Lead validation failed: {str(e)}")
 
     async def get_status(self) -> Dict[str, Any]:
         """Get Team Lead agent status"""
