@@ -106,7 +106,7 @@ DATABASE_USER=prompt_gen_user
 DATABASE_PASSWORD=$dbPassword
 
 # GLM API配置 (请替换为您的实际API密钥)
-GLM_API_KEY=your_glm_api_key_here
+GLM_API_KEY=
 GLM_BASE_URL=https://open.bigmodel.cn/api/paas/v4
 GLM_MODEL=glm-4
 
