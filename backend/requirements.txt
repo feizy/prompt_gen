@@ -1,8 +1,7 @@
 # FastAPI and ASGI server
 fastapi
 uvicorn
-python-multipart==0.0.6
-
+python-multipart
 # GLM API and LangChain
 langchain==0.1.0
 langchain-community==0.0.10
@@ -52,7 +51,7 @@ structlog==23.2.0
 sentry-sdk==1.38.0
 
 # CORS
-python-cors==1.0.1
+# python-cors
 
 # Background tasks
 celery==5.3.4

@@ -39,6 +39,7 @@ class TechnicalDeveloperAgent(BaseAgent):
         self.agent_name = "Technical Developer"
         self.glm_client = glm_client or GLMApiClient()
         self.response_parser = GLMResponseParser()
+        self.logger = logging.getLogger(__name__)
 
         # Technical Developer specific system prompt
         self.system_prompt = """You are a Senior Technical Developer AI agent with expertise in software architecture, system design, and technical implementation.
@@ -221,14 +222,14 @@ Please provide a structured, detailed technical specification that a development
                 {"role": "user", "content": user_message}
             ],
             temperature=0.5,
-            max_tokens=2500
+            max_tokens=65535
         )
 
         # Parse GLM response
         parsed_response = self.response_parser.parse_response(
             glm_response,
             self.agent_type.value,
-            context.conversation_context
+            None
         )
 
         # Format response for web display
@@ -244,7 +245,7 @@ Please provide a structured, detailed technical specification that a development
             requires_user_input=False,
             clarifying_questions=[],
             metadata={
-                "raw_glm_response": parsed_response.raw_response,
+                # "raw_glm_response": parsed_response.raw_response, # Not available
                 "analysis_type": "initial_technical_analysis",
                 "requirements_analyzed": len(requirements_text) if requirements_text else 0
             }
@@ -308,7 +309,7 @@ Structure your response to clearly show:
         parsed_response = self.response_parser.parse_response(
             glm_response,
             self.agent_type.value,
-            context.conversation_context
+            None
         )
 
         formatted_content = MessageFormatter.format_technical_solution(
@@ -323,7 +324,7 @@ Structure your response to clearly show:
             requires_user_input=False,
             clarifying_questions=[],
             metadata={
-                "raw_glm_response": parsed_response.raw_response,
+                # "raw_glm_response": parsed_response.raw_response, # Not available
                 "analysis_type": "feedback_incorporation",
                 "iteration": context.current_iteration,
                 "feedback_processed": len(team_lead_feedback) if team_lead_feedback else 0
@@ -380,7 +381,7 @@ Provide a refined technical solution that shows clear improvements over previous
         parsed_response = self.response_parser.parse_response(
             glm_response,
             self.agent_type.value,
-            context.conversation_context
+            None
         )
 
         formatted_content = MessageFormatter.format_technical_solution(
@@ -395,7 +396,7 @@ Provide a refined technical solution that shows clear improvements over previous
             requires_user_input=False,
             clarifying_questions=[],
             metadata={
-                "raw_glm_response": parsed_response.raw_response,
+                # "raw_glm_response": parsed_response.raw_response, # Not available
                 "analysis_type": "solution_refinement",
                 "iteration": context.current_iteration
             }
@@ -524,8 +525,8 @@ Provide a refined technical solution that shows clear improvements over previous
         ]
 
         # Add conversation context if available
-        if context.conversation_context and context.conversation_context.message_history:
-            recent_messages = context.conversation_context.message_history[-3:]  # Last 3 messages
+        if context.conversation_history:
+            recent_messages = context.conversation_history[-3:]  # Last 3 messages
             prompt_parts.append("\n=== RECENT CONVERSATION ===")
             for msg in recent_messages:
                 prompt_parts.append(f"{msg.agent_type}: {msg.content}")

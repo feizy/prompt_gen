@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 import json
 import re
 from typing import Dict, Any, List, Optional, Union
+from datetime import datetime
 from pydantic import BaseModel, Field
 from enum import Enum
 
@@ -29,11 +30,13 @@ class MessageType(str, Enum):
     """Message types"""
     REQUIREMENT = "requirement"
     SOLUTION = "solution"
+    TECHNICAL_SOLUTION = "technical_solution"
     REVIEW = "review"
     APPROVAL = "approval"
     REJECTION = "rejection"
     CLARIFICATION = "clarification"
     QUESTION = "question"
+    ERROR = "error"
 
 
 class AgentCapability(BaseModel):
@@ -59,6 +62,16 @@ class AgentContext(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
+class Message(BaseModel):
+    """Message in conversation history"""
+    id: int
+    agent_type: AgentType
+    content: str
+    message_type: MessageType
+    timestamp: datetime
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
 class AgentResponse(BaseModel):
     """Standardized agent response"""
     content: str
@@ -68,6 +81,7 @@ class AgentResponse(BaseModel):
     follow_up_questions: List[str] = Field(default_factory=list)
     requires_user_input: bool = False
     is_final_response: bool = False
+    clarifying_questions: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class BaseAgent(ABC):
@@ -159,7 +173,7 @@ class BaseAgent(ABC):
             parsed_response = self.response_parser.parse_response(
                 response=response,
                 agent_type=self.agent_type.value,
-                context=context
+                context=None  # Pass None to avoid type mismatch issues
             )
 
             # Validate response
@@ -261,11 +275,8 @@ class BaseAgent(ABC):
 
     def _get_max_tokens(self, context: AgentContext) -> int:
         """Get max tokens for response based on context"""
-        # Early iterations can be shorter
-        if context.current_iteration < 3:
-            return 1000
-        else:
-            return 2000
+        # Set to maximum to ensure GLM-4.6 returns content
+        return 65535  # Use near-maximum value to be safe
 
     async def _validate_response(
         self,

@@ -40,6 +40,7 @@ class TeamLeadAgent(BaseAgent):
         self.agent_name = "Team Lead"
         self.glm_client = glm_client or GLMApiClient()
         self.response_parser = GLMResponseParser()
+        self.logger = logging.getLogger(__name__)
 
         # Team Lead specific system prompt
         self.system_prompt = """You are a Team Lead AI agent with extensive experience in both product management and technical development. Your role is to review, evaluate, and make decisions on proposed solutions.
@@ -220,14 +221,14 @@ Structure your response with clear sections and provide specific, constructive f
                 {"role": "user", "content": user_message}
             ],
             temperature=0.4,
-            max_tokens=2000
+            max_tokens=65535
         )
 
         # Parse GLM response
         parsed_response = self.response_parser.parse_response(
             glm_response,
             self.agent_type.value,
-            context.conversation_context
+            None
         )
 
         # Determine decision based on content analysis
@@ -246,7 +247,7 @@ Structure your response with clear sections and provide specific, constructive f
             requires_user_input=decision_type == MessageType.REJECTION,
             clarifying_questions=self._generate_feedback_questions(decision_type, parsed_response.content),
             metadata={
-                "raw_glm_response": parsed_response.raw_response,
+                # "raw_glm_response": parsed_response.raw_response, # Not available
                 "review_type": "initial_review",
                 "requirements_available": bool(pm_output.get('content')),
                 "technical_solution_available": bool(tech_output.get('content'))
@@ -307,7 +308,7 @@ Be constructive but decisive in your assessment."""
         parsed_response = self.response_parser.parse_response(
             glm_response,
             self.agent_type.value,
-            context.conversation_context
+            None
         )
 
         decision_type = self._analyze_decision_type(parsed_response.content, context)
@@ -324,7 +325,7 @@ Be constructive but decisive in your assessment."""
             requires_user_input=decision_type == MessageType.REJECTION,
             clarifying_questions=self._generate_feedback_questions(decision_type, parsed_response.content),
             metadata={
-                "raw_glm_response": parsed_response.raw_response,
+                # "raw_glm_response": parsed_response.raw_response, # Not available
                 "review_type": "intermediate_review",
                 "iteration": context.current_iteration
             }
@@ -387,7 +388,7 @@ This is your final decision - be decisive and provide clear justification."""
         parsed_response = self.response_parser.parse_response(
             glm_response,
             self.agent_type.value,
-            context.conversation_context
+            None
         )
 
         # Force a decision in final iteration
@@ -411,7 +412,7 @@ This is your final decision - be decisive and provide clear justification."""
             requires_user_input=False,  # No more input in final iteration
             clarifying_questions=[],
             metadata={
-                "raw_glm_response": parsed_response.raw_response,
+                # "raw_glm_response": parsed_response.raw_response, # Not available
                 "review_type": "final_approval",
                 "final_decision": decision_type.value,
                 "total_iterations": context.current_iteration + 1
@@ -551,8 +552,8 @@ This is your final decision - be decisive and provide clear justification."""
         ]
 
         # Add conversation context if available
-        if context.conversation_context and context.conversation_context.message_history:
-            recent_messages = context.conversation_context.message_history[-3:]  # Last 3 messages
+        if context.conversation_history:
+            recent_messages = context.conversation_history[-3:]  # Last 3 messages
             prompt_parts.append("\n=== RECENT CONVERSATION ===")
             for msg in recent_messages:
                 prompt_parts.append(f"{msg.agent_type}: {msg.content}")

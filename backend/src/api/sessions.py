@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import and_, desc, func
 
-from ..database.connection import get_async_session
+from ..database.connection import get_async_session, async_session_maker
 from ..models.session import Session as SessionModel, AgentMessage
 from ..agents.orchestration_engine import AgentOrchestrationEngine
 from ..services.glm_api import GLMApiClient

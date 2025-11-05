@@ -142,9 +142,13 @@ class GLMResponseParser:
             if re.search(pattern, content, re.IGNORECASE):
                 return pattern_name.replace('_pattern', '')
 
-        # Use ParsedAgentResponse's automatic inference
-        parsed = ParsedAgentResponse(content=content)
-        return parsed.message_type
+        # Use ParsedAgentResponse's automatic inference with default message type
+        try:
+            parsed = ParsedAgentResponse(content=content, message_type="review")
+            return parsed.message_type
+        except Exception:
+            # If inference fails, return a default message type
+            return "review"
 
     def _calculate_confidence(
         self,

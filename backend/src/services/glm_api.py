@@ -19,6 +19,7 @@ logger = get_logger(__name__)
 
 class GLMModel(str, Enum):
     """Available GLM models"""
+    GLM_4_6 = "glm-4.6"
     GLM_4 = "glm-4"
     GLM_4_TURBO = "glm-4-turbo"
     GLM_4_TURBO_VISION = "glm-4-turbo-vision"
@@ -37,10 +38,9 @@ class GLMChatRequest(BaseModel):
     model: GLMModel
     messages: List[GLMMessage]
     temperature: float = Field(0.7, ge=0.0, le=2.0, description="Sampling temperature")
-    max_tokens: Optional[int] = Field(2000, ge=1, le=8192, description="Maximum tokens in response")
-    top_p: float = Field(0.9, ge=0.0, le=1.0, description="Nucleus sampling parameter")
+    max_tokens: Optional[int] = Field(2000, ge=1, le=65536, description="Maximum tokens in response")
     stream: bool = Field(False, description="Whether to stream response")
-    stop: Optional[Union[str, List[str]]] = Field(None, description="Stop sequences")
+    # Note: Only include fields that are supported by GLM API according to official docs
 
 
 class GLMChatResponse(BaseModel):
@@ -50,7 +50,7 @@ class GLMChatResponse(BaseModel):
     created: int
     model: str
     choices: List[Dict[str, Any]]
-    usage: Dict[str, int]
+    usage: Dict[str, Any]  # Changed from Dict[str, int] to Dict[str, Any] to handle prompt_tokens_details
     system_fingerprint: Optional[str] = None
 
 
@@ -60,7 +60,7 @@ class GLMApiClient:
     def __init__(self):
         self.base_url = settings.GLM_BASE_URL
         self.api_key = settings.GLM_API_KEY
-        self.default_model = GLMModel(settings.GLM_MODEL)
+        self.default_model = GLMModel.GLM_4_6  # Use the latest GLM model
         self.timeout = settings.GLM_TIMEOUT
         self.max_retries = settings.GLM_MAX_RETRIES
 

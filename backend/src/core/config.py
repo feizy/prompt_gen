@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     GLM_API_KEY: str = Field(..., description="GLM API key")
     GLM_BASE_URL: str = "https://open.bigmodel.cn/api/paas/v4/"
     GLM_MODEL: str = "glm-4"
-    GLM_TIMEOUT: int = 30
+    GLM_TIMEOUT: int = 120
     GLM_MAX_RETRIES: int = 3
 
     # Redis

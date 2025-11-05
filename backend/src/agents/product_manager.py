@@ -11,6 +11,8 @@ from .interfaces import (
     BaseAgent, AgentType, AgentCapability, AgentContext, AgentResponse,
     MessageType, ParsedAgentResponse
 )
+from ..services.glm_response_parser import GLMResponseParser
+from ..services.glm_api import GLMApiClient
 from .message_formatter import MessageFormatter
 from .context_manager import AgentContextManager
 from .state_tracker import AgentState, SessionState
@@ -28,6 +30,7 @@ class ProductManagerAgent(BaseAgent):
         self.validator = get_response_validator()
         self.quality_assessor = get_quality_assessor()
         self.requirement_templates = self._load_requirement_templates()
+        self.logger = get_logger(__name__)
 
     def _get_capabilities(self) -> List[AgentCapability]:
         """Get Product Manager agent capabilities"""
@@ -551,3 +554,40 @@ Please provide more details about these aspects so I can create comprehensive re
         analysis["key_topics"] = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)[:5]
 
         return analysis
+
+    async def _agent_specific_validation(
+        self,
+        response: ParsedAgentResponse,
+        context: AgentContext
+    ) -> ParsedAgentResponse:
+        """Product Manager specific response validation"""
+
+        # Use the response validator
+        validation_result = self.validator.validate_response(response, self.agent_type, context)
+
+        if not validation_result.is_valid:
+            # Log validation issues
+            self.logger.warning(
+                "Product Manager response validation failed",
+                issues=[issue.message for issue in validation_result.issues],
+                session_id=context.session_id
+            )
+
+            # Try to use corrected content if available
+            if validation_result.corrected_content:
+                response.content = validation_result.corrected_content
+                self.logger.info("Applied automatic corrections to Product Manager response")
+
+        # Assess response quality
+        quality_result = self.quality_assessor.assess_quality(
+            response.content, self.agent_type, response.message_type, context
+        )
+
+        # Update response metadata with validation results
+        response.metadata.update({
+            "validation_score": validation_result.confidence_score,
+            "quality_scores": quality_result,
+            "validation_issues": len(validation_result.issues)
+        })
+
+        return response

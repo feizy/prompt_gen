@@ -29,6 +29,7 @@ AI agent processes MUST emit structured logs, metrics, and status updates. Real-
 
 ### V. Test-First Development (NON-NEGOTIABLE)
 TDD is mandatory: Tests must be written → User approved → Tests must fail → Only then implement. Red-Green-Refactor cycle strictly enforced. All AI agent operations, API endpoints, and web interface components MUST have comprehensive test coverage.
+### VI NO EMOJI IN CODE！
 
 ## Technology Stack Requirements
 

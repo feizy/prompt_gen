@@ -10,6 +10,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 import uvicorn
 
 from src.api import sessions, agents, user_input, clarifying_questions, history
+from src.api_routes import router as orchestration_router
 from src.websocket import websocket_handler
 from src.core.config import settings
 from src.core.logging import setup_logging
@@ -77,6 +78,7 @@ app.include_router(agents.router, prefix="/v1/agents", tags=["agents"])
 app.include_router(user_input.router, prefix="/v1", tags=["user-input"])
 app.include_router(clarifying_questions.router, prefix="/v1", tags=["clarifying-questions"])
 app.include_router(history.router, prefix="/v1/history", tags=["history"])
+app.include_router(orchestration_router, tags=["agent-orchestration"])
 
 # Include WebSocket router
 app.include_router(websocket_handler.router, prefix="/ws")

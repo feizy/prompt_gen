@@ -5,6 +5,7 @@ Agent Orchestration Engine implementation
 import asyncio
 import json
 import logging
+import re
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime
 from enum import Enum
@@ -13,13 +14,14 @@ from .interfaces import (
     AgentContext,
     AgentResponse,
     MessageType,
-    AgentType
+    AgentType,
+    Message
 )
 from .product_manager import ProductManagerAgent
 from .technical_developer import TechnicalDeveloperAgent
 from .team_lead import TeamLeadAgent
-from .conversation_manager import ConversationManager
-from .state_tracker import AgentStateTracker
+# from .conversation_manager import ConversationManager  # TODO: Implement if needed
+# from .state_tracker import AgentStateTracker  # TODO: Implement if needed
 from ..services.glm_api import GLMApiClient
 
 logger = logging.getLogger(__name__)
@@ -118,7 +120,7 @@ class AgentOrchestrationEngine:
             session_data["state"] = self.current_state.value
 
             # Get initial response from Product Manager
-            pm_response = await self.product_manager.process(context)
+            pm_response = await self.product_manager.process(context, input_message=user_requirements)
 
             # Store response and update context
             session_data["agent_outputs"]["product_manager"] = {
@@ -157,7 +159,9 @@ class AgentOrchestrationEngine:
                 },
                 "next_agent": self._get_next_agent_name(next_state),
                 "requires_user_input": pm_response.requires_user_input,
-                "clarifying_questions": pm_response.clarifying_questions
+                "clarifying_questions": pm_response.clarifying_questions,
+                "completed": False,
+                "final_prompt": None
             }
 
         except Exception as e:
@@ -475,12 +479,22 @@ class AgentOrchestrationEngine:
 
     def _format_agent_response(self, response: AgentResponse) -> Dict[str, Any]:
         """Format agent response for API response"""
+        # Convert clarifying questions from list of dicts to list of strings
+        clarifying_questions = []
+        for cq in response.clarifying_questions:
+            if isinstance(cq, dict) and "question_text" in cq:
+                clarifying_questions.append(cq["question_text"])
+            elif isinstance(cq, str):
+                clarifying_questions.append(cq)
+            else:
+                clarifying_questions.append(str(cq))
+
         return {
             "content": response.content,
             "message_type": response.message_type.value,
             "confidence": response.confidence,
             "requires_user_input": response.requires_user_input,
-            "clarifying_questions": response.clarifying_questions,
+            "clarifying_questions": clarifying_questions,
             "metadata": response.metadata
         }
 
